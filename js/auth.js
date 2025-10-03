@@ -45,10 +45,11 @@ const toggleVisibility = (e) => {
 };
 
 /** input 유효성 검사 */
-const validateField = (fieldEl, rules, type) => {
+const validateField = (id, rules, type) => {
+  const fieldEl = document.getElementById(id);
   const value = fieldEl.value;
-  for (const { test, message } of rules) {
-    if (!test(value)) {
+  for (const { test, message, parameters } of rules) {
+    if (!test(value, parameters)) {
       showError(fieldEl, message);
       return;
     }

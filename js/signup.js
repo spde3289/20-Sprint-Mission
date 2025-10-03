@@ -1,10 +1,5 @@
-import {
-  clearError,
-  showError,
-  toggleVisibility,
-  validateField,
-} from "./auth.js";
-import { isMin8, isRequired, isSame, isValidEmail } from "./utils.js";
+import { toggleVisibility, validateField } from "./auth.js";
+import { isMin8, isRequired, isSame, isValidEmail, sameAs } from "./utils.js";
 
 const form = document.querySelector(".login-container");
 const userEmailInput = document.getElementById("userEmail");
@@ -13,50 +8,33 @@ const userPasswordInput = document.getElementById("userPassword");
 const userPasswordCheckInput = document.getElementById("userPasswordCheck");
 const submitButton = document.getElementById("submit-button");
 const visibilityButton = document.getElementsByClassName("btn_visibility");
-
-// 비밀번호 일치 확인
-const validatePasswordConfirm = () => {
-  const pwd = userPasswordInput.value;
-  const confirm = userPasswordCheckInput.value.trim();
-
-  if (!confirm) {
-    return false;
-  }
-  if (!isSame(pwd, confirm)) {
-    showError(userPasswordCheckInput, "비밀번호가 일치하지 않습니다.");
-    return false;
-  }
-  clearError(userPasswordCheckInput, true);
-  return true;
-};
-
-// 순서대로 검사 처음 실패한 메시지 노출
+document.createElement;
 const FIELDS = [
   {
-    el: userEmailInput,
+    id: "userEmail",
     rules: [
       { test: isRequired, message: "이메일을 입력해주세요." },
       { test: isValidEmail, message: "잘못된 이메일 형식입니다." },
     ],
   },
   {
-    el: userNickNameInput,
+    id: "userNickName",
     rules: [{ test: isRequired, message: "닉네임을 입력해주세요." }],
   },
   {
-    el: userPasswordInput,
+    id: "userPassword",
     rules: [
       { test: isRequired, message: "비밀번호를 입력해주세요." },
       { test: isMin8, message: "비밀번호를 8자 이상 입력해주세요." },
     ],
   },
   {
-    el: userPasswordCheckInput,
+    id: "userPasswordCheck",
     rules: [
-      { test: isRequired, message: "비밀번호 확인을 입력해주세요." },
       {
-        test: validatePasswordConfirm,
+        test: sameAs,
         message: "비밀번호가 일치하지 않습니다.",
+        parameters: { otherId: "userPassword" },
       },
     ],
   },
@@ -68,7 +46,7 @@ const reevaluate = () => {
     isValidEmail(userEmailInput.value) &&
     isMin8(userPasswordInput.value) &&
     isRequired(userNickNameInput.value) &&
-    validatePasswordConfirm();
+    isSame(userPasswordInput.value, userPasswordCheckInput.value);
 
   // 위의 조건을 만족할시 disabled false
   submitButton.disabled = !ok;
@@ -79,17 +57,25 @@ const reevaluate = () => {
 
 // 이벤트 위임을 통한 이벤트 리스너 추가
 form.addEventListener("focusout", (e) => {
-  const field = FIELDS.find((f) => f.el === e.target);
+  const field = FIELDS.find((f) => document.getElementById(f.id) === e.target);
   if (!field) return;
-  validateField(field.el, field.rules, true);
+  validateField(field.id, field.rules, true);
 });
+
+const DEPENDS_ON = {
+  userPassword: "userPasswordCheck", // 비밀번호가 바뀌면 확인 필드를 재검증
+  userCard: "userCardCheck",
+};
 
 // 입력중 조건 만족시 클리어
 form.addEventListener("input", (e) => {
-  const field = FIELDS.find((f) => f.el === e.target);
+  const field = FIELDS.find((f) => document.getElementById(f.id) === e.target);
+
   if (!field) return;
-  validateField(field.el, field.rules, true);
-  validatePasswordConfirm();
+  validateField(field.id, field.rules, true);
+
+  const dependents = DEPENDS_ON[field.id] || [];
+  dependents.forEach((depId) => validateField(depId, field.rules, true));
   reevaluate();
 });
 
